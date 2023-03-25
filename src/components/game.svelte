@@ -1,79 +1,63 @@
 <script lang="ts">
     import Flag from "./flag.svelte";
-    import randomCountry from 'random-country'
-    import { currentCountry, playing } from "./country.js";
-
-    let flagGuess;
+    import { playing, theFourStore, flag, winningCountryStore, regen, startPlaying } from "./country.js";
+    import shuffle from 'shuffle-array'
+    let regionNames = new Intl.DisplayNames(['en'], {type: 'region'});
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     let win = false;
-    let lost = false;
+    let lose = false;
 
-    async function getCountries() {
-        let country = randomCountry({ full: true })
-        return country.toLowerCase()
-    }
-
-    async function getFlag(){
-        let country = await getCountries()
-        let data = await fetch(`https://restcountries.com/v3.1/name/${country}`)
-        let json = await data.json()
-        let val;
-        Object.keys(json).forEach(function (key) {
-          val = json[key];
-          currentCountry.set(val.name.common.toLowerCase())
-          return val;
-        });
-        return val;
-    }
-
-    function check(){
-        playing.set(false)
-        if ($currentCountry == flagGuess){
-            win = true;
+    async function handle(country){
+        if (country === regionNames.of($winningCountryStore)){
+            win = true            
         } else {
-            lost = true;
+            lose = true            
         }
+        $playing = false
+        await regen()
+        await sleep(2000)
+        $playing = true
     }
 
-    let promise = getFlag()
 </script>
 
 <main>
     {#if $playing}
-        {#await promise}
-            <h1>Loading</h1>
-        {:then data} 
-            <div>
-                <Flag src={data.flags.png}/>
-    
-            </div>
-            <div>
-                <form on:submit|preventDefault={check}>
-                    <input type="text" bind:value={flagGuess} style="width: 24rem; font-size: 14pt;">
-                </form>
-            </div>
-        {/await}
+        <div>
+            <Flag src={$flag}/>
+        </div>
+        <div id="btns">
+            {#each shuffle($theFourStore) as country}
+                <button class="button is-link is-outlined" style="margin-right: 2rem;" on:click={async () => {
+                    await handle(country) 
+                }}>
+                    {country.replace("amp;", "")}
+                </button>
+            {/each}
+        </div>            
     {:else}
+        {#if win}
+            <h1>Correct</h1>
+        {:else if lose}
+            <h1>Incorrect it was {regionNames.of($winningCountryStore)}</h1>
+            
+            <div>
+                <Flag src={$flag}/>
+            </div>
+        {/if}
 
-            {#if win}
-                <h1 class="title is-2">You win</h1>
-                <div>
-                    <button class="button is-primary is-light" on:click={() => {
-                        location.reload()
-                    }}>
-                        Play again
-                    </button>
-                </div>
-            {:else if lost}
-                <h1 class="title is-2">You lose! It was {$currentCountry}</h1>
-                <div>
-                    <button class="button is-primary is-light" on:click={() => {
-                        location.reload()
-                    }}>
-                        Play again
-                    </button>
-                </div>
-            {/if}
-    {/if}
+        <div>
+            <button class="button is-link is-outlined" on:click={() => {playing.set(true)}}>Play again</button>
+        </div>
+        
+        {/if}
+    
+    <div>
+        <button class="button is-link is-outlined" on:click={async () => {
+            startPlaying.set(false)
+            await regen()
+        }}>Exit</button>
+    </div>
 
 
 </main>
@@ -89,6 +73,12 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        margin-top: 2rem;
     }
-
+    #btns{
+        display: flex;
+        justify-content: center;
+        flex-direction: row;
+        margin-top: 2rem;
+    }
 </style>

@@ -19,6 +19,7 @@
     "vite": "^4.0.0"
   },
   "dependencies": {
-    "random-country": "^1.0.1"
+    "random-country": "^1.0.1",
+    "shuffle-array": "^1.0.1"
   }
 }
