@@ -14,8 +14,10 @@
             lose = true            
         }
         $playing = false
-        await regen()
         await sleep(2000)
+        await regen()
+        win = false;
+        lose = false;
         $playing = true
     }
 
